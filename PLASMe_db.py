@@ -166,20 +166,24 @@ def plasme_db(keep_zip=False, db_dir=None, num_threads=8):
             print(f"{db_zip_path} is incomplete or corrupted, please rerun the script to redownload the database.")
 
     # Uncompress DB.zip and build the database
-    print("Unzip the reference plasmid database ... ...")
+    print("Unzip the reference plasmid database ...")
     shutil.unpack_archive(f"{db_dir}.zip", db_dir_parent)
     shutil.move(f"{db_dir_parent}/DB", db_dir)
 
-    print("Unzip the reference sequences ... ...")
+    print("Unzip the reference sequences ...")
     shutil.unpack_archive(f"{db_dir}/plsdb.zip", db_dir)
     os.remove(f"{db_dir}/plsdb.zip")
 
-    print("Build DIAMOND and BLAST database ... ...")
+    print("Building DIAMOND db ...")
     subprocess.run(f"diamond makedb --in {db_dir}/plsdb_Mar30.fna.aa -d {db_dir}/plsdb_Mar30 -p {num_threads}", shell=True)
-    subprocess.run(f"makeblastdb -in {db_dir}/plsdb_Mar30.fna -dbtype nucl -out {db_dir}/plsdb_Mar30", shell=True)
 
+    print("Building BLAST db ...")
+    subprocess.run(f"makeblastdb -in {db_dir}/plsdb_Mar30.fna -dbtype nucl -out {db_dir}/plsdb_Mar30", shell=True)
+    
+    print("Cleaning up ...")
     os.remove(f"{db_dir}/plsdb_Mar30.fna")
     os.remove(f"{db_dir}/plsdb_Mar30.fna.aa")
+
 
     # delete the compressed database or not
     if not keep_zip:
