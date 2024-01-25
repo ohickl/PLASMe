@@ -128,6 +128,8 @@ def plasme_db(keep_zip=False, db_dir=None, num_threads=8):
     # Check if the `DB` exists
     if not db_dir:
         db_dir = f"{plasme_full_path}/DB"
+
+    db_dir_parent = pathlib.Path(db_dir).parent.resolve()
     
     if os.path.exists(db_dir):
         print(f"The target database folder ({db_dir}) already exists.")
@@ -161,11 +163,12 @@ def plasme_db(keep_zip=False, db_dir=None, num_threads=8):
         print(f"Verifying md5 ... ")
         f_md5 = check_md5(file_path=db_zip_path)
         if f_md5 != db_md5:
-            print(f"DB.zip is incomplete or corrupted, please rerun the script to redownload the database.")
+            print(f"{db_zip_path} is incomplete or corrupted, please rerun the script to redownload the database.")
 
     # Uncompress DB.zip and build the database
     print("Unzip the reference plasmid database ... ...")
-    shutil.unpack_archive(f"{db_dir}.zip", plasme_full_path)
+    shutil.unpack_archive(f"{db_dir}.zip", db_dir_parent)
+    shutil.move(f"{db_dir_parent}/DB", db_dir)
 
     print("Unzip the reference sequences ... ...")
     shutil.unpack_archive(f"{db_dir}/plsdb.zip", db_dir)
