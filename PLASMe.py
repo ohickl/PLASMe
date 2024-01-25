@@ -185,7 +185,7 @@ def predict(contig_path, ref_plas_db_path, ref_tax_path, temp_dir, out_path, ref
     #     subprocess.call(f"blastn -query {contig_path} -db {ref_plas_db_path} -num_threads {num_threads} -out {temp_dir}/blastn.csv -outfmt 6", shell=True)
     # else:
     #     subprocess.call(f"makeblastdb -in {ref_plas_db_path} -dbtype nucl -out {ref_plas_db_path}", shell=True)
-    print(f"Align the contigs to the reference plasmids ... ...")
+    print(f"Align the contigs to the reference plasmids ...")
     subprocess.call(f"blastn -query {contig_path} -db {ref_plas_db_path} -num_threads {num_threads} -out {temp_dir}/blastn.csv -outfmt 6", shell=True)
     
     ### assign the taxonomy orders of contigs, and see if they are in the overlapping area
@@ -289,14 +289,14 @@ def predict(contig_path, ref_plas_db_path, ref_tax_path, temp_dir, out_path, ref
 
     ### run PC transformer in the non-overlapped region
     ## save the non-overlapped contigs and extract the proteins
-    print(f"{len(query_set)} contigs are aligned to the reference database.")
+    print(f"{len(query_set)} contigs aligned to the reference database.")
     aln_seq_list = []
     for s in SeqIO.parse(contig_path, 'fasta'):
         if s.id in query_set:
             aln_seq_list.append(s)
     SeqIO.write(aln_seq_list, f"{temp_dir}/align.fna", 'fasta')
 
-    print(f"Predict the proteins in contigs ... ...")
+    print(f"Predict the proteins in contigs ...")
     bio_script.run_multi_prodigal(contig_path=f"{temp_dir}/align.fna", 
                        threads=num_threads)
 
@@ -305,7 +305,7 @@ def predict(contig_path, ref_plas_db_path, ref_tax_path, temp_dir, out_path, ref
     # run alignment
     p2a_plsdb_mar30_db = f"{db_dir}/plsdb_Mar30.dmnd"
     # p2a_refseq_may05_db = "/home/xubotang2/2020_work/plasmid/Deeplasmid_train/ncbi_refseq_plasmid/refseq_plas.dmnd"
-    print(f"Align the proteins to PC database ... ...")
+    print(f"Align the proteins to PC database ...")
     bio_script.run_diamond(db_path=p2a_plsdb_mar30_db, 
                 query_path=f"{temp_dir}/align.fna.aa",
                 threads=num_threads)
@@ -328,7 +328,7 @@ def predict(contig_path, ref_plas_db_path, ref_tax_path, temp_dir, out_path, ref
     src_pad_idx = 0
     
     # print("Loading the test data ...")
-    print(f"Predict using PLASMe ... ...")
+    print(f"Predict using PLASMe ...")
     test_feat = pkl.load(open(f'{temp_dir}/sentence.feat', 'rb'))
     test_seq_list = []
     with open(f"{temp_dir}/sentence_id.list") as sent_list:
@@ -375,50 +375,32 @@ def predict(contig_path, ref_plas_db_path, ref_tax_path, temp_dir, out_path, ref
 
     op.close()
 
+    print(f"Finished prediction.")
+
 
 def build_db(db_dir, num_threads=8):
     """Build the database.
     """
     # unzip plasmid files
-    print("Unzip the reference sequences ... ...")
+    db_dir_parent = pathlib.Path(db_dir).parent.resolve()
+
+    print("Unzip the reference plasmid database ...")
+    shutil.unpack_archive(f"{db_dir}.zip", db_dir_parent)
+    shutil.move(f"{db_dir_parent}/DB", db_dir)
+
+    print("Unzip the reference sequences ...")
     shutil.unpack_archive(f"{db_dir}/plsdb.zip", db_dir)
     os.remove(f"{db_dir}/plsdb.zip")
 
-    # build BLASTN and DIAMOND database
-    print("Build DIAMOND and BLAST database ... ...")
+    print("Building DIAMOND db ...")
     subprocess.run(f"diamond makedb --in {db_dir}/plsdb_Mar30.fna.aa -d {db_dir}/plsdb_Mar30 -p {num_threads}", shell=True)
+
+    print("Building BLAST db ...")
     subprocess.run(f"makeblastdb -in {db_dir}/plsdb_Mar30.fna -dbtype nucl -out {db_dir}/plsdb_Mar30", shell=True)
     
+    print("Cleaning up ...")
     os.remove(f"{db_dir}/plsdb_Mar30.fna")
     os.remove(f"{db_dir}/plsdb_Mar30.fna.aa")
-
-
-# def plasme_output(rst_path, contig_path, ident_thres, cov_thres, pred_thres, output_path):
-#     """Generate the PLASMe output files.
-#     """
-
-#     rst_df = pd.read_csv(rst_path, sep=',')
-#     pred_plasmid = []
-#     pred_plasmid_overlap_dict = {}
-#     for order, contig, ident_v, cov_v, pred_v, overlap in zip(rst_df['order'], rst_df['query'], 
-#                                                     rst_df['identity'], rst_df['coverage'], 
-#                                                     rst_df['PLASMe'], rst_df['overlap']):
-#         if ident_v >= ident_thres and cov_v >= cov_thres:
-#             pred_plasmid.append(contig)
-#         else:
-#             if pred_v > pred_thres:
-#                 pred_plasmid.append(contig)
-#         pred_plasmid_overlap_dict[contig] = overlap
-
-#     output_seqs = []
-#     for s in SeqIO.parse(contig_path, 'fasta'):
-#         if s.id in pred_plasmid:
-#             s.description = pred_plasmid_overlap_dict[s.id]
-#             output_seqs.append(s)
-
-#     SeqIO.write(output_seqs, output_path, 'fasta')
-
-#     print(f"Finished. The identified plasmid contigs are saved in {output_path}.")
 
 
 def merge_ranges(ranges):
@@ -438,10 +420,14 @@ def plasme_output(rst_path, blastn_rst, contig_path, ident_thres, cov_thres, pre
     """Generate the PLASMe output files.
     """
 
-    rst_df = pd.read_csv(rst_path, sep=',')
+    # Load prediction results and ensure correct data types
+    dtypes = {'order': str, 'query': str, 'identity': float,
+              'coverage': float, 'PLASMe': float, 'overlap': str}
+    rst_df = pd.read_csv(rst_path, sep=',', dtype=dtypes)
     pred_plasmid = []
     pred_plasmid_overlap_dict = {}
     contig_seq_index = SeqIO.index(contig_path, 'fasta')
+
     out_info = open(f"{output_path}_report.csv", 'w')
 
     # load blastn results
@@ -458,8 +444,11 @@ def plasme_output(rst_path, blastn_rst, contig_path, ident_thres, cov_thres, pre
     out_info.write(f"contig\tlength\treference\torder\tevidence\tscore\tamb_region\n")
 
     for order, contig, ident_v, cov_v, pred_v, overlap in zip(rst_df['order'], rst_df['query'], 
-                                                    rst_df['identity'], rst_df['coverage'], 
-                                                    rst_df['PLASMe'], rst_df['overlap']):
+                                                              rst_df['identity'], rst_df['coverage'], 
+                                                              rst_df['PLASMe'], rst_df['overlap']):
+        
+        print(f"{contig} ...")
+
         if ident_v >= ident_thres and cov_v >= cov_thres:
             pred_plasmid.append(contig)
         else:
@@ -472,10 +461,6 @@ def plasme_output(rst_path, blastn_rst, contig_path, ident_thres, cov_thres, pre
         for site in overlap_info:
             if '-' in site:
                 overlap_site_list.append([int(i) for i in site.split('-')])
-        # if len(overlap_site_list) > 0:
-        #     pred_plasmid_overlap_dict[contig] = merge_ranges(overlap_site_list)
-        # else:
-        #     pred_plasmid_overlap_dict[contig] = []
 
         evidence, score = '', ''
         if pred_v > 0:
@@ -492,7 +477,13 @@ def plasme_output(rst_path, blastn_rst, contig_path, ident_thres, cov_thres, pre
                 out_m.append('-'.join([str(i) for i in m_e]))
 
         if contig in pred_plasmid:
-            out_info.write(f"{contig}\t{len(contig_seq_index[contig].seq)}\t{query_ref_dict[contig]}\t{order}\t{evidence}\t{score}\t{','.join(out_m)}\n")
+            try:
+                out_info.write(f"{contig}\t{len(contig_seq_index[contig].seq)}\t{query_ref_dict[contig]}\t{order}\t{evidence}\t{score}\t{','.join(out_m)}\n")
+            except KeyError:
+                print(f"{contig} not found")
+                print(query_ref_dict.get(contig, 'not found in the BLASTn results'))
+                print(contig_seq_index.get(contig, 'not found in the contig file'))
+                raise KeyError
 
     output_seqs = []
     for s in SeqIO.parse(contig_path, 'fasta'):
@@ -500,9 +491,10 @@ def plasme_output(rst_path, blastn_rst, contig_path, ident_thres, cov_thres, pre
             # s.description = pred_plasmid_overlap_dict[s.id]
             output_seqs.append(s)
 
+    print(f"{len(output_seqs)} plasmids identified. Writing output ...")
     SeqIO.write(output_seqs, output_path, 'fasta')
 
-    print(f"Finished. The identified plasmid contigs are saved in {output_path}.")
+    print(f"Finished. Report saved to {output_path}.")
     out_info.close()
 
 
@@ -518,7 +510,7 @@ if __name__ == "__main__":
                      num_threads=plasme_args.thread)
     else:
         if os.path.exists(f"{db_dir}.zip"):
-            print("Unzip the reference plasmid database ... ...")
+            print("Unzip the reference plasmid database ...")
             shutil.unpack_archive(f"{db_dir}.zip", plasme_work_dir_path)
             build_db(db_dir=db_dir, 
                     num_threads=plasme_args.thread)
