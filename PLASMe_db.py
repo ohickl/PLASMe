@@ -104,7 +104,7 @@ def download_db(curl_link, out_path):
         filesize = response.headers["Content-Length"]
         chunk_size = 128 * 10000
         times = int(filesize) // chunk_size
-        print("Downloading DB.zip ... ...")
+        print(f"Downloading DB.zip ... to {out_path}")
 
         progress = ProgressBar(times, fmt=ProgressBar.FULL)
         for chunk in response.iter_content(chunk_size):
@@ -133,7 +133,7 @@ def plasme_db(keep_zip=False, db_dir=None, num_threads=8):
         print(f"The target database folder ({db_dir}) already exists.")
         exit()
 
-    # Check if the DB.zip exists. 
+    # Check if the db path exists. 
     # If so, check md5.
     # If not, download.
     db_zip_path = f"{db_dir}.zip"
@@ -142,18 +142,18 @@ def plasme_db(keep_zip=False, db_dir=None, num_threads=8):
         print(f"Verifying md5 ... ")
         f_md5 = check_md5(file_path=db_zip_path)
         if f_md5 != db_md5:
-            print(f"DB.zip is incomplete or corrupted, redownload DB.zip ... ")
+            print(f"{db_zip_path} is incomplete or corrupted, redownload ... ")
             try:
-                subprocess.check_output(f"curl {curl_link} --output {db_zip_path}", shell=True)
+                subprocess.check_output(f"curl -L '{curl_link}' --output {db_zip_path}", shell=True)
             except subprocess.CalledProcessError:
                 download_db(curl_link, out_path=db_zip_path)
             print(f"Verifying md5 ... ")
             f_md5 = check_md5(file_path=db_zip_path)
             if f_md5 != db_md5:
-                print(f"DB.zip is incomplete or corrupted, please rerun the script to redownload the database.")
+                print(f"{db_zip_path} is incomplete or corrupted, please rerun the script to redownload the database.")
     
     else:
-        print(f"Downloading DB.zip ... ")
+        print(f"Downloading DB.zip to {db_zip_path} ... ")
         try:
             subprocess.check_output(f"curl {curl_link} --output {db_zip_path}", shell=True)
         except subprocess.CalledProcessError:
