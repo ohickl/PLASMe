@@ -22,8 +22,8 @@ def plasmedb_cmd():
 
     parser.add_argument(
         "--db_path",
-        default=pathlib.Path(__file__).parent.resolve(),
-        type=pathlib.Path,
+        default=f"{pathlib.Path(__file__).parent.resolve()}/DB",
+        type=str,
         required=False,
         help="Path to database.")
     
