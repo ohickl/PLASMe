@@ -35,7 +35,7 @@ def plasme_cmd():
     parser.add_argument(
         '-d', "--database",
         type=str,
-        default=f"{pathlib.Path(__file__).parent.resolve()}/DB,
+        default=f"{pathlib.Path(__file__).parent.resolve()}/DB",
         help="The default database."
         )
 
