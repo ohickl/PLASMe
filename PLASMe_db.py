@@ -188,5 +188,5 @@ if __name__ == "__main__":
     plasmedb_args = plasmedb_cmd()
 
     plasme_db(keep_zip=plasmedb_args.keep_zip,
-              db_path=plasmedb_args.db_path,
+              db_dir=plasmedb_args.db_path,
               num_threads=plasmedb_args.threads)
