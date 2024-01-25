@@ -492,6 +492,8 @@ def plasme_output(rst_path, blastn_rst, contig_path, ident_thres, cov_thres, pre
             output_seqs.append(s)
 
     print(f"{len(output_seqs)} plasmids identified. Writing output ...")
+    if not output_path.endswith('.fasta'):
+        output_path += '.fasta'
     SeqIO.write(output_seqs, output_path, 'fasta')
 
     print(f"Finished. Report saved to {output_path}.")
