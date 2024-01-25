@@ -13,31 +13,31 @@ import  torch
 from    torch import nn
 from    torch import optim
 import  torch.utils.data as Data
-
+import pathlib
 
 def plasme_cmd():
     parser = argparse.ArgumentParser(description="PLASMe arguments.")
 
     # argument for dataset
     parser.add_argument(
-        'input',
+        '--input',
         type=str,
         help="Path of the input file."
     )
 
     # argument for dataset
     parser.add_argument(
-        'output',
+        '--output',
         type=str,
         help="Directory of the output files."
     )
 
-    # parser.add_argument(
-    #     '-d', "--database",
-    #     type=str,
-    #     default="DB",
-    #     help="The default database."
-    #     )
+    parser.add_argument(
+        '-d', "--database",
+        type=str,
+        default=f"{pathlib.Path(__file__).parent.resolve()}/DB,
+        help="The default database."
+        )
 
     parser.add_argument(
         '-c', "--coverage",
@@ -511,15 +511,15 @@ if __name__ == "__main__":
     plasme_work_dir_path = os.getcwd()
     plasme_args = plasme_cmd()
 
-    db_dir = f"{plasme_work_dir_path}/DB"
+    db_dir = plasme_args.database
     if os.path.exists(db_dir) and os.listdir(db_dir) != 0:
         if not os.path.exists(f"{db_dir}/plsdb_Mar30.dmnd"):
             build_db(db_dir=db_dir, 
                      num_threads=plasme_args.thread)
     else:
-        if os.path.exists(f"{plasme_work_dir_path}/DB.zip"):
+        if os.path.exists(f"{db_dir}.zip"):
             print("Unzip the reference plasmid database ... ...")
-            shutil.unpack_archive(f"{plasme_work_dir_path}/DB.zip", plasme_work_dir_path)
+            shutil.unpack_archive(f"{db_dir}.zip", plasme_work_dir_path)
             build_db(db_dir=db_dir, 
                     num_threads=plasme_args.thread)
         else:
